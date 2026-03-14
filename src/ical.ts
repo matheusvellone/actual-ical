@@ -204,6 +204,21 @@ export const generateIcal = async () => {
       tzid: TZ,
     }
 
+    // Limit number of  generated events to avoid performance and/or import issues
+    const envYears = parseInt(process.env.ACTUAL_SYNC_YEARS || '1', 10)
+    const yearsToSync = isNaN(envYears) ? 1 : envYears
+
+    const safetyLimit = new Date()
+    safetyLimit.setFullYear(safetyLimit.getFullYear() + yearsToSync)
+
+    if (!ruleOptions.until || ruleOptions.until > safetyLimit) {
+      ruleOptions.until = safetyLimit
+
+      ruleOptions.count = undefined
+
+      logger.debug(`Capping schedule to ${yearsToSync} year(s): ${schedule.name}`)
+    }
+
     logger.debug(ruleOptions, schedule.name)
     const rule = new RRule(ruleOptions)
 
@@ -233,18 +248,23 @@ export const generateIcal = async () => {
       throw new Error('Invalid weekendSolveMode')
     }
 
-    return rule.all()
-      .filter((date) => {
-        return DateTime.fromJSDate(date) >= nextDate
-      })
-      .map((date) => {
-        return calendar.createEvent({
-          start: moveOnWeekend(date).toJSDate(),
-          summary: `${schedule.name} (${formatAmount()})`,
-          allDay: true,
-          timezone: TZ,
+   try {
+      return rule.all()
+        .filter((date) => {
+          return DateTime.fromJSDate(date) >= nextDate
         })
-      })
+        .map((date) => {
+          return calendar.createEvent({
+            start: moveOnWeekend(date).toJSDate(),
+            summary: `${schedule.name} (${formatAmount()})`,
+            allDay: true,
+            timezone: TZ,
+          })
+        })
+    } catch (err) {
+      logger.error({ err, scheduleName: schedule.name }, 'Failed to generate events for schedule')
+      return []
+    }
   })
 
   return calendar.toString()

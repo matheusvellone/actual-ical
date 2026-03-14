@@ -13,6 +13,7 @@ FROM node:${NODE_VERSION}-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV ACTUAL_SYNC_YEARS=1
 
 COPY package*.json .
 RUN npm ci --only=production
