@@ -1,0 +1,95 @@
+name: Dependabot Auto-Merge @actual-app/api Updates
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.event.pull_request.title, 'Bump @actual-app/api') && github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get current and new versions
+        id: versions
+        run: |
+          echo "current_api_version=${{ steps.metadata.outputs.previous-version }}" >> "$GITHUB_OUTPUT"
+          echo "new_api_version=${{ steps.metadata.outputs.new-version }}" >> "$GITHUB_OUTPUT"
+
+          git fetch origin "${{ github.event.pull_request.base.ref }}":"refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
+
+          CURRENT_APP_VERSION=$(node -p "require('./package.json').version")
+          BASE_APP_VERSION=$(git show "origin/${{ github.event.pull_request.base.ref }}:package.json" | node -e "const fs=require('fs'); process.stdout.write(JSON.parse(fs.readFileSync(0, 'utf8')).version)")
+          VERSION_COMPARE=$(node -e "const parse=v=>v.split('.').map(Number); const cmp=(a,b)=>{for(let i=0;i<Math.max(a.length,b.length);i++){const av=a[i]||0; const bv=b[i]||0; if(av!==bv){return av<bv?-1:1}} return 0}; process.stdout.write(String(cmp(parse(process.argv[1]), parse(process.argv[2]))));" "$CURRENT_APP_VERSION" "$BASE_APP_VERSION")
+
+          echo "current_app_version=$CURRENT_APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "base_app_version=$BASE_APP_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$VERSION_COMPARE" -le 0 ]; then
+            IFS='.' read -r major minor patch <<< "$BASE_APP_VERSION"
+            NEW_APP_VERSION="$major.$minor.$((patch + 1))"
+            SHOULD_BUMP=true
+          else
+            NEW_APP_VERSION="$CURRENT_APP_VERSION"
+            SHOULD_BUMP=false
+          fi
+
+          echo "new_app_version=$NEW_APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "should_bump=$SHOULD_BUMP" >> "$GITHUB_OUTPUT"
+
+      - name: Update package version
+        if: steps.versions.outputs.should_bump == 'true'
+        run: |
+          npm version --no-git-tag-version --ignore-scripts "${{ steps.versions.outputs.new_app_version }}"
+
+      - name: Commit changes
+        if: steps.versions.outputs.should_bump == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Bump version to v${{ steps.versions.outputs.new_app_version }}"
+          git push
+
+  approve-and-merge:
+    needs: [update-version]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.event.pull_request.title, 'Bump @actual-app/api') && github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Approve and merge PR
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --squash --auto "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_MERGE_TOKEN }}
