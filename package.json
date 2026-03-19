@@ -12,14 +12,14 @@
   "dependencies": {
     "@actual-app/api": "26.2.0",
     "dotenv": "^17.3.1",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "ical-generator": "^8.1.1",
     "luxon": "^3.7.2",
     "pino": "^9.6.0",
     "rrule": "^2.8.1"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
+    "@types/express": "^5.0.6",
     "@types/luxon": "^3.7.1",
     "@types/node": "^25.5.0",
     "@vellone/techsak": "^1.2.10",
