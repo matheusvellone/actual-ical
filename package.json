@@ -21,7 +21,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/luxon": "^3.7.1",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "@vellone/techsak": "^1.2.10",
     "nodemon": "^3.1.14",
     "pino-pretty": "^13.1.3",
