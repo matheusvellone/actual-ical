@@ -2,7 +2,7 @@ import * as actualApi from '@actual-app/api'
 import ical, { ICalCalendarMethod } from 'ical-generator'
 import { RRule } from 'rrule'
 import { DateTime, DurationLikeObject } from 'luxon'
-import { RecurConfig, ScheduleEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import { AccountEntity, RecurConfig, ScheduleEntity } from '@actual-app/api/@types/loot-core/src/types/models'
 import { formatCurrency } from './helpers/number'
 import { existsSync, mkdirSync } from 'node:fs'
 import logger from './helpers/logger'
@@ -13,6 +13,8 @@ const {
   ACTUAL_SYNC_ID,
   ACTUAL_SYNC_PASSWORD,
   ACTUAL_PATH = '.actual-cache',
+  EVENT_NAME_TEMPLATE = '{{scheduleName}} ({{amount}})',
+  EVENT_DESCRIPTION_TEMPLATE,
   TZ = 'UTC',
 } = process.env
 
@@ -51,9 +53,29 @@ const getSchedules = async () => {
     })
     .select(['*'])
 
-  const { data } = await actualApi.aqlQuery(query) as { data: ScheduleEntity[] }
+  const accountsQuery = actualApi.q('accounts')
+    .filter({
+      tombstone: false,
+    })
+    .select(['*'])
 
-  return data
+  const { data: schedulesData } = await actualApi.aqlQuery(query) as { data: ScheduleEntity[] }
+
+  const { data: accountsData } = await actualApi.aqlQuery(accountsQuery) as { data: AccountEntity[] }
+
+  const accountsMap = new Map(accountsData.map((account) => [account.id, account]))
+
+  type EnrichedSchedule = ScheduleEntity & {
+    account?: AccountEntity
+  }
+
+  return schedulesData.map((schedule: EnrichedSchedule) => {
+    if (schedule._account) {
+      schedule.account = accountsMap.get(schedule._account)
+    }
+
+    return schedule
+  })
 }
 
 const resolveFrequency = (frequency: string) => {
@@ -248,6 +270,18 @@ export const generateIcal = async () => {
       throw new Error('Invalid weekendSolveMode')
     }
 
+    const renderTemplate = (template: string) => {
+      const variables = {
+        scheduleName: schedule.name,
+        amount: formatAmount(),
+        accountName: schedule.account?.name,
+      }
+
+      return template.replace(/{{(.*?)}}/g, (_, varName) => {
+        return variables[varName as keyof typeof variables] || ''
+      }).trim()
+    }
+
    try {
       return rule.all()
         .filter((date) => {
@@ -256,7 +290,8 @@ export const generateIcal = async () => {
         .map((date) => {
           return calendar.createEvent({
             start: moveOnWeekend(date).toJSDate(),
-            summary: `${schedule.name} (${formatAmount()})`,
+            summary: renderTemplate(EVENT_NAME_TEMPLATE),
+            description: EVENT_DESCRIPTION_TEMPLATE && renderTemplate(EVENT_DESCRIPTION_TEMPLATE),
             allDay: true,
             timezone: TZ,
           })
