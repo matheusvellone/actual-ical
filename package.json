@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@actual-app/api": "26.3.0",
+    "@actual-app/api": "26.4.0",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "ical-generator": "^8.1.1",
