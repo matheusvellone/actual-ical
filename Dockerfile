@@ -25,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 EXPOSE ${PORT:-3000}
 
-CMD ["node", "dist/bin/server.js"]
+CMD ["node", "dist/src/bin/server.js"]
