@@ -2,7 +2,7 @@ import * as actualApi from '@actual-app/api'
 import ical, { ICalCalendarMethod } from 'ical-generator'
 import { RRule } from 'rrule'
 import { DateTime, DurationLikeObject } from 'luxon'
-import { AccountEntity, RecurConfig, ScheduleEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import { AccountEntity, RecurConfig, ScheduleEntity } from '@actual-app/core/types/models'
 import { formatCurrency } from './helpers/number'
 import { existsSync, mkdirSync } from 'node:fs'
 import logger from './helpers/logger'
@@ -26,12 +26,12 @@ if (!ACTUAL_SERVER || !ACTUAL_MAIN_PASSWORD || !ACTUAL_SYNC_ID) {
 // This should be fixed on Actual SDK side, but for now we can just ignore unhandled exceptions
 // This may hide other issues, but it's better than breaking the app
 process.on('uncaughtException', (error) => {
-  logger.error('Unhandled exception', error)
+  logger.error(error, 'Unhandled exception')
 })
 
 const getSchedules = async () => {
   if (!existsSync(ACTUAL_PATH)) {
-    logger.debug('Creating directory:', ACTUAL_PATH)
+    logger.debug({ dir: ACTUAL_PATH }, 'Creating directory')
     mkdirSync(ACTUAL_PATH)
   }
 
@@ -110,7 +110,7 @@ export const generateIcal = async () => {
   calendar.method(ICalCalendarMethod.REQUEST)
 
   schedules.forEach((schedule) => {
-    logger.debug(schedule, 'Processing Schedule')
+    logger.debug({ schedule }, 'Processing Schedule')
     const recurringData = schedule._date
     const nextDate = DateTime.fromISO(schedule.next_date)
 
