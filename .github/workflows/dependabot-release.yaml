@@ -13,7 +13,7 @@ permissions:
 jobs:
   create-release:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.event.pull_request.title, 'Bump @actual-app/api')
+    if: github.event.pull_request.merged == true && github.event.pull_request.user.login == 'dependabot[bot]' && contains(github.event.pull_request.title, '@actual-app/api')
     outputs:
       app_version: ${{ steps.version.outputs.app_version }}
 
