@@ -11,7 +11,7 @@ permissions:
 jobs:
   update-version:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.event.pull_request.title, 'Bump @actual-app/api') && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && contains(github.event.pull_request.title, '@actual-app/api') && github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout code
@@ -83,7 +83,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.event.pull_request.title, 'Bump @actual-app/api') && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && contains(github.event.pull_request.title, '@actual-app/api') && github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Approve and merge PR
