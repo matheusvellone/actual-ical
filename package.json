@@ -1,6 +1,6 @@
 {
   "name": "actual-ical",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
