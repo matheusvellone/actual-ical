@@ -1,6 +1,6 @@
 {
   "name": "actual-ical",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@actual-app/api": "26.6.0",
+    "@actual-app/api": "26.7.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ical-generator": "^10.2.0",
